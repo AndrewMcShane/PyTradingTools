@@ -2,12 +2,12 @@
 Utilities module for the trading tools.
 
 '''
- 
+
 #==============================================#
-'''
-    In this file (in-order as they appear):
-        RollingQueue
-'''
+#
+#     In this file (in-order as they appear):
+#         RollingQueue
+#
 #==============================================#
 
 ### IMPORTS ###
@@ -54,7 +54,6 @@ class RollingQueue:
         the max size of the queue
     size:
         the current size of the queue
-    
     '''
     def __init__(self, capacity):
         if capacity < 1:
@@ -69,11 +68,13 @@ class RollingQueue:
         return iter(self.data)
 
     def isEmpty(self):
+        '''returns True if the rolling queue contains no elements'''
         return self._size == 0
 
     def atCapacity(self):
+        '''returns True if the rolling queue is at capacity and will roll off old values'''
         return self.size == self._capacity
-    
+
     def peek(self):
         '''Return the first element in the queue, otherwise None.'''
         if not self.isEmpty():
@@ -82,7 +83,7 @@ class RollingQueue:
             return None
 
     def enqueue(self, value):
-        '''Enqueues an object to the list. If at capacity, returns the removed object, otherwise None.'''
+        '''Enqueues an object to the list. If at capacity, returns the removed object, else None.'''
         removed = None
         if self._size == self._capacity:
             removed = self.data.pop(0)
@@ -102,8 +103,10 @@ class RollingQueue:
             return self.data.pop(0)
     @property
     def capacity(self):
+        '''The capacity of the rolling queue. Read-only'''
         return self._capacity
 
     @property
     def size(self):
+        '''The current size of the rolling queue. Read-only'''
         return self._size
