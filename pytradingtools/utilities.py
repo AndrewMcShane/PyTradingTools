@@ -2,11 +2,11 @@
 Utilities module for the trading tools.
 
 '''
-
+ 
 #==============================================#
 '''
-    In this file (in-order):
-        RollingQueue(object)
+    In this file (in-order as they appear):
+        RollingQueue
 '''
 #==============================================#
 
@@ -47,8 +47,6 @@ class RollingQueue:
         adds an object into the queue. If at capacity, return the removed element, otherwise None.
     dequeue() raises ValueError:
         remove the first element from the rolling queue. Raises ValueError if empty.
-    getPercentToCapacity():
-        returns a value between 0-1 of how full the queue is (0 is empty, 1 is full)
 
     Properties
     ----------
