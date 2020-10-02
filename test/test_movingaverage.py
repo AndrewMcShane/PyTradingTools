@@ -11,7 +11,8 @@ class TestSimpleMovingAverage(unittest.TestCase):
     '''Test Cases for the SMA'''
     def test_base(self):
         '''Test that SMA inherits MovingAverage:'''
-        self.assertTrue(isinstance(SimpleMovingAverage.__base__, MovingAverage))
+        # pylint: disable=unidiomatic-typecheck
+        self.assertTrue(type(SimpleMovingAverage.__base__) == type(MovingAverage))
 
     def test_initialization(self):
         '''Test initialization of SMA:'''
