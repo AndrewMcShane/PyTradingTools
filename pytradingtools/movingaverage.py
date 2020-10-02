@@ -23,9 +23,11 @@ class MovingAverage(metaclass=ABCMeta):
 
     Abstract Methods
     ----------------
-    update(value)
+
+    update(value):
         update the moving average with the next value.
-    average
+
+    average:
         the current average value of the moving average implementation.
     '''
     @abstractmethod
@@ -100,6 +102,7 @@ class ExponentialMovingAverage(MovingAverage):
     def __init__(self, period, smoothing=2.0):
         '''
             period = number of days to track the moving average.
+
             smoothing = smoothing factor used in the multiplier calculation. default is 2.0
         '''
         if not isinstance(period, int) or period < 1:
@@ -164,9 +167,9 @@ class Envelope:
         examples:
 
             # Place the envelope above and below by 5%:
-            delta = 0.05
+            Envelope(0.05)
             # Place the envelope above by 5%, below by 10%:
-            delta = (0.05, 0.10): tuple
+            Envelope((0.05, 0.10))
         '''
         self._abovePercent = 0.0
         self._belowPercent = 0.0
