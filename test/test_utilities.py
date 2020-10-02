@@ -21,7 +21,7 @@ class TestRollingQueue(unittest.TestCase):
 
         self.assertFalse(q.isEmpty())
         self.assertTrue(q.atCapacity())
-    
+
     def test_peek(self):
         # Tests the peek method return values
         q = RollingQueue(1)
@@ -51,7 +51,7 @@ class TestRollingQueue(unittest.TestCase):
 
         A = "A"
         B = "B"
-        
+
         self.assertRaises(ValueError, q.dequeue)
 
         q.enqueue(A)
@@ -62,7 +62,7 @@ class TestRollingQueue(unittest.TestCase):
         self.assertEqual(A, q.dequeue())
         self.assertEqual(B, q.dequeue())
         self.assertRaises(ValueError, q.dequeue)
-    
+
     def test_iter(self):
         # Test the built-in iterable
         cap = 10
@@ -78,5 +78,5 @@ class TestRollingQueue(unittest.TestCase):
         for value in q:
             self.assertEqual(value, expected)
             expected += 1
-        
+
         self.assertEqual(cap, expected)
