@@ -46,7 +46,7 @@ class SimpleMovingAverage(MovingAverage):
         period:
             the amount of data to use for the moving average value.
         '''
-        if not isinstance(period, int) and period < 1:
+        if not isinstance(period, int) or period < 1:
             raise ValueError("period must be an integer and greater than 0")
 
         self._recip_capacity = 1.0 / period
@@ -115,8 +115,18 @@ class ExponentialMovingAverage(MovingAverage):
         if self._average is None:
             self._average = value
 
-        self.average = (value - self._average) * self._multiplier + self._average
+        self._average = (value - self._average) * self._multiplier + self._average
 
     @property
     def average(self):
         return self._average if self._average is not None else 0.0
+
+    @property
+    def period(self):
+        '''Get the period of the EMA'''
+        return self._period
+
+    @property
+    def smoothing(self):
+        '''Get the smoothing factor or the EMA'''
+        return self._smoothing
