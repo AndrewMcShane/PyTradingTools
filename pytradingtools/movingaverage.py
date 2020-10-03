@@ -185,13 +185,15 @@ class Envelope:
         elif isinstance(delta, (int, float)):
             self._abovePercent = delta
             self._belowPercent = delta
+        else:
+            raise ValueError("delta must be a non-complex number or tuple")
 
     def update(self, average, value):
         '''
         update the envelope with the trend average, and the value (price).
         '''
         self._aboveBound = average + (average * self._abovePercent)
-        self._belowBound = average + (average * self._belowPercent)
+        self._belowBound = average - (average * self._belowPercent)
 
         if value >= self._aboveBound:
             self._state = EnvelopeState.above

@@ -1,8 +1,3 @@
-'''
-Utilities module for the trading tools.
-
-'''
-
 #==============================================#
 #
 #     In this file (in-order as they appear):
@@ -10,50 +5,57 @@ Utilities module for the trading tools.
 #
 #==============================================#
 
-### IMPORTS ###
-
 #==============================================#
 # START CLASSES
 #==============================================#
 
 class RollingQueue:
     '''
-    Rolling Queue
     A fixed-size queue structure that automatically
+
     removes the first element from the queue when at capacity.
 
     Rolling Queues can be iterated and imlpement an __iter__ method.
-
-    Attributes
-    ----------
-    _capacity : int
-        maximum size of the rolling queue
-    _size : int
-        current size of the queue
-    data: list
-        underlying data  of the queue
-
-    Methods
-    -------
-    __iter__():
-        returns an iterable of the rolling queue data
-    isEmpty():
-        returns if the queue is empty or not.
-    atCapacity():
-        returns if the queue is at capacity or not.
-    peek():
-        returns the element at the front of the queue, or None if empty.
-    enqueue(value : object):
-        adds an object into the queue. If at capacity, return the removed element, otherwise None.
-    dequeue() raises ValueError:
-        remove the first element from the rolling queue. Raises ValueError if empty.
 
     Properties
     ----------
     capacity:
         the max size of the queue
+
     size:
         the current size of the queue
+
+    Methods
+    -------
+    isEmpty():
+        returns if the queue is empty or not.
+
+    atCapacity():
+        returns if the queue is at capacity or not.
+
+    peek():
+        returns the element at the front of the queue, or None if empty.
+
+    enqueue(value : object):
+        adds an object into the queue. If at capacity, return the removed element, otherwise None.
+
+    dequeue() raises ValueError:
+        remove the first element from the rolling queue. Raises ValueError if empty.
+
+    __iter__():
+        returns an iterable of the rolling queue data
+
+    Protected
+    ---------
+    _capacity : int
+        maximum size of the rolling queue
+
+    _size : int
+        current size of the queue
+
+    data: list
+        underlying data  of the queue
+
     '''
     def __init__(self, capacity):
         if capacity < 1:
