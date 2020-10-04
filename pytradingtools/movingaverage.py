@@ -104,6 +104,8 @@ class ExponentialMovingAverage(MovingAverage):
             period = number of days to track the moving average.
 
             smoothing = smoothing factor used in the multiplier calculation. default is 2.0
+
+            Using a smoothing factor of 1.0 is the equivalent of using a SMMA/MMA/RMA
         '''
         if not isinstance(period, int) or period < 1:
             raise ValueError("period must be an integer and greater than 0")

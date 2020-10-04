@@ -1,3 +1,4 @@
+from collections import deque
 #==============================================#
 #
 #     In this file (in-order as they appear):
@@ -64,7 +65,7 @@ class RollingQueue:
         self._capacity = capacity
         self._size = 0
 
-        self.data = []
+        self.data = deque()
 
     def __iter__(self):
         return iter(self.data)
@@ -88,7 +89,7 @@ class RollingQueue:
         '''Enqueues an object to the list. If at capacity, returns the removed object, else None.'''
         removed = None
         if self._size == self._capacity:
-            removed = self.data.pop(0)
+            removed = self.data.popleft()
         else:
             self._size += 1
 
@@ -102,7 +103,7 @@ class RollingQueue:
             raise ValueError("the queue is empty.")
         else:
             self._size -= 1
-            return self.data.pop(0)
+            return self.data.popleft()
     @property
     def capacity(self):
         '''The capacity of the rolling queue. Read-only'''
