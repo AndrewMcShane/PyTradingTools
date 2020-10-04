@@ -8,6 +8,7 @@ from pytradingtools.utilities import RollingQueue
     #       MovingAverage(ABCMeta)
     #       SimpleMovingAverage(MovingAverage)
     #       ExponentialMovingAverage(MovingAverage)
+    #       SmoothedMovingAverage(ExponentialMovingAverage)
     #       EnvelopeState(Enum)
     #       Envelope
 #==============================================#
@@ -139,6 +140,16 @@ class ExponentialMovingAverage(MovingAverage):
     def smoothing(self):
         '''Get the smoothing factor or the EMA'''
         return self._smoothing
+
+class SmoothedMovingAverage(ExponentialMovingAverage):
+    '''
+    Alias for an exponential moving average (EMA) with a smoothing factor of 1.0
+    '''
+    def __init__(self, period):
+        '''
+        period: the number of segments (usually days) to track the moving average.
+        '''
+        super().__init__(period, 1.0)
 
 class EnvelopeState(Enum):
     '''

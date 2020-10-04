@@ -1,6 +1,6 @@
 import unittest
 # pylint: disable=line-too-long
-from pytradingtools.movingaverage import MovingAverage, SimpleMovingAverage, ExponentialMovingAverage, Envelope, EnvelopeState
+from pytradingtools.movingaverage import MovingAverage, SimpleMovingAverage, ExponentialMovingAverage, SmoothedMovingAverage, Envelope, EnvelopeState
 
 class TestMovingAverage(unittest.TestCase):
     '''Test Cases for the Moving Average Base Class'''
@@ -116,6 +116,22 @@ class TestExponentialMovingAverage(unittest.TestCase):
             ema.update(data[i])
             actual = round(ema.average, 5)
             self.assertAlmostEqual(actual, expected[i])
+
+class TestSmoothedMovingAverage(unittest.TestCase):
+    '''Test cases for SMMA'''
+    def test_initialization(self):
+        '''Test SMMA initialization'''
+        self.assertRaises(ValueError, SmoothedMovingAverage, 0)
+        self.assertRaises(ValueError, SmoothedMovingAverage, -1)
+        self.assertRaises(ValueError, SmoothedMovingAverage, 1.5)
+        self.assertRaises(ValueError, SmoothedMovingAverage, 1j)
+
+        p = 5
+        smma = SmoothedMovingAverage(p)
+
+        self.assertEqual(smma.period, p)
+        self.assertEqual(smma.smoothing, 1.0)
+        self.assertEqual(smma.average, 0.0)
 
 class TestEnvelope(unittest.TestCase):
     '''Test cases for the Envelope utility'''
