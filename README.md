@@ -8,4 +8,4 @@ Run the tests with:
 ```python
 python3 -m unittest
 ```
-All tests should reside within the `\test` directory, with a test_{module_under_testing}.py naming convention.
+All tests should reside within the `\test` directory, with a `test_{module_under_testing}.py` naming convention.
