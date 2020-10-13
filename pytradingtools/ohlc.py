@@ -1,10 +1,12 @@
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
+from collections import deque
 import datetime
 #==============================================#
     # In this file (in-order as they appear):
     #       OhlcData(dataclass)
     #       OhlcService(ABCMeta)
+    #       OhlcFileReader(OhlcService)
 #==============================================#
 
 
@@ -66,3 +68,87 @@ class OhlcService(metaclass=ABCMeta):
         '''
         returns a list of OhlcData objects.
         '''
+
+class OhlcFileReader(OhlcService):
+    '''
+    Reads OHLC data from a file source, transforming it into a list of OhlcData.
+    '''
+    def __init__(self, file, ignoreLines=0, delimiter=None, dateForm='%Y-%m-%d', hasVolume=True, ascending=True):
+        '''
+        Assumes file input to follow this order (line-by-line):
+
+            DateTime, Open, High, Low, Close, Volume
+
+        raises ValueError if format is incorrect.
+
+        Params
+        ------
+
+        `file`: `str`
+            Path to the source file. Raises OSError if there is a problem opening the file.
+
+        `ignoreLines`: `int`
+            how many lines of the file should be skipped when starting to read.
+            default=0. If the first line of the file you're reading in is column labels,
+            you will want ignoreLines = 1. Raises ValueError if EOF is hit.
+
+        `delimiter`: `str`
+            separator between data on the same line. Default is any whitespace.
+
+        `dateForm`: `str`
+            Default `%Y-%m-%d`. The format `datetime.strptime` should use when parsing the date.
+
+        `hasVolume`: `bool`
+            Default True. If false, will specify that the input file has no volume column.
+
+        `ascending`: `bool`
+            Default True. Is the data in the file in ascending (oldest first) or descending order?
+            In either case, the resulting data will be in ascending (oldest first) order.
+        '''
+
+        self.data = []
+        # deque has o(1) insert left, compared to o(n) insert(0) of list.
+        dataDeq = deque()
+        # The expected number of elements in each line
+        expectedLen = 6
+        if not hasVolume:
+            expectedLen -= 1
+
+        # Try and open the file
+        with open(file) as f:
+            # Skip the lines to ignore:
+            for _ in range(ignoreLines):
+                next(f)
+            # Parse out every line after:
+            for line in f:
+                # split delimit
+                cols = line.split(delimiter)
+
+                if not len(cols) == expectedLen:
+                    raise ValueError("Line {} contains {} elements but {} were expected.".format(line, len(cols), expectedLen))
+
+                # Go through the columns:
+                _date = datetime.datetime.strptime(cols[0], dateForm)
+                _open = float(cols[1])
+                _high = float(cols[2])
+                _low = float(cols[3])
+                _close = float(cols[4])
+                _volume = 0
+                if hasVolume:
+                    _volume = float(cols[5])
+
+                # Create the ohlc object:
+                ohlc = OhlcData(_date, _open, _high, _low, _close, _volume)
+                # Add to the list:
+                if ascending:
+                    dataDeq.append(ohlc)
+                else:
+                    dataDeq.appendleft(ohlc)
+
+        # With the file read, convert the deque into the list:
+        self.data = list(dataDeq)
+
+
+    def getData(self):
+        return self.data
+   
