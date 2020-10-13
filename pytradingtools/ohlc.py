@@ -1,8 +1,10 @@
+from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
 import datetime
 #==============================================#
     # In this file (in-order as they appear):
     #       OhlcData(dataclass)
+    #       OhlcService(ABCMeta)
 #==============================================#
 
 
@@ -48,3 +50,19 @@ class OhlcData:
         self.low_price = low
         self.close_price = close
         self.volume = volume
+
+class OhlcService(metaclass=ABCMeta):
+    '''
+    Abstract Base Class for an OHLC Service.
+
+    Abstract Methods
+    ----------------
+
+    getData:
+        return a list of OhlcData objects
+    '''
+    @abstractmethod
+    def getData(self):
+        '''
+        returns a list of OhlcData objects.
+        '''
