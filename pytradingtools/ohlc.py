@@ -17,22 +17,23 @@ import datetime
 @dataclass
 class OhlcData:
     '''
-    Contains information about the open, high, low, close, and volume on a specified `date`.
+    Contains information about the open, high, low, close, adjusted close, and volume on a specified `date`.
     '''
     date: datetime.date
     open_price: float
     high_price: float
     low_price: float
     close_price: float
+    adj_close_price: float
     volume: float
 
-    def __init__(self, date, open_price, high, low, close, volume = 0):
+    def __init__(self, date, open_price, high, low, close, adj_close = 0, volume = 0):
         '''
             date: `datetime.date`
                 the date of the data. Can be `None`.
 
             open_price: `float`
-                the price at market open.
+                the price at market open. called `open_price` and not `open` due to reserved keyword.
 
             high: `float`
                 the highest price during the trading period.
@@ -41,7 +42,10 @@ class OhlcData:
                 the lowest price during the trading period.
 
             close `float`
-                the price at the end of the  trading day.
+                the price at the end of the trading day.
+
+            adj_close `float`
+                the price after accounting for corporate actions i.e., stock split, dividends, etc.
 
             volume: `float`
                 the amount of asset that has been traded.
@@ -51,6 +55,7 @@ class OhlcData:
         self.high_price = high
         self.low_price = low
         self.close_price = close
+        self.adj_close_price = adj_close
         self.volume = volume
 
 class OhlcService(metaclass=ABCMeta):
@@ -73,12 +78,13 @@ class OhlcFileReader(OhlcService):
     '''
     Reads OHLC data from a file source, transforming it into a list of OhlcData.
     '''
-    def __init__(self, file, ignoreLines=0, delimiter=None, dateForm='%Y-%m-%d', hasVolume=True, ascending=True):
+    def __init__(self, file, ignoreLines=0, delimiter=None, dateForm='%Y-%m-%d', hasAdjClose=True, hasVolume=True, ascending=True):
         '''
         Assumes file input to follow this order (line-by-line):
 
-            DateTime, Open, High, Low, Close, Volume
+            DateTime, Open, High, Low, Close, (Adj Close), (Volume)
 
+        Adj Close and Volume can be optionally disregarded.
         raises ValueError if format is incorrect.
 
         Params
@@ -101,17 +107,22 @@ class OhlcFileReader(OhlcService):
         `hasVolume`: `bool`
             Default True. If false, will specify that the input file has no volume column.
 
+        `hasAdjClose`: `bool`
+            Default True. If false, will specify that the input file has no adj close column.
+
         `ascending`: `bool`
             Default True. Is the data in the file in ascending (oldest first) or descending order?
             In either case, the resulting data will be in ascending (oldest first) order.
         '''
 
-        self.data = []
+        self._data = []
         # deque has o(1) insert left, compared to o(n) insert(0) of list.
         dataDeq = deque()
-        # The expected number of elements in each line
-        expectedLen = 6
+        # The expected number of elements in each line (quick check helper)
+        expectedLen = 7
         if not hasVolume:
+            expectedLen -= 1
+        if not hasAdjClose:
             expectedLen -= 1
 
         # Try and open the file
@@ -133,12 +144,19 @@ class OhlcFileReader(OhlcService):
                 _high = float(cols[2])
                 _low = float(cols[3])
                 _close = float(cols[4])
+                # Parse with checks for adjusted close and volume optionals.
+                cur = 5
+                _adj_close = 0
+                if hasAdjClose:
+                    _adj_close = float(cols[cur])
+                    cur += 1
+
                 _volume = 0
                 if hasVolume:
-                    _volume = float(cols[5])
+                    _volume = float(cols[cur])
 
                 # Create the ohlc object:
-                ohlc = OhlcData(_date, _open, _high, _low, _close, _volume)
+                ohlc = OhlcData(_date, _open, _high, _low, _close, _adj_close, _volume)
                 # Add to the list:
                 if ascending:
                     dataDeq.append(ohlc)
@@ -146,9 +164,8 @@ class OhlcFileReader(OhlcService):
                     dataDeq.appendleft(ohlc)
 
         # With the file read, convert the deque into the list:
-        self.data = list(dataDeq)
-
+        self._data = list(dataDeq)
 
     def getData(self):
-        return self.data
+        return self._data
    
