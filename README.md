@@ -1,4 +1,4 @@
-# PythonTradingTools
+# PyTradingTools
 
 Python Trading Tools is a set of tools meant to facilitate the creation market-based algorithms.
 
