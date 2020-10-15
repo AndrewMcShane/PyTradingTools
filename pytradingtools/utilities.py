@@ -1,9 +1,11 @@
 from collections import deque
+from math import sqrt
 #==============================================#
 #
-#     In this file (in-order as they appear):
-#         RollingQueue
-#
+#       In this file (in-order as they appear):
+#           RollingQueue
+#           RunningStats
+#           RollingStats
 #==============================================#
 
 #==============================================#
@@ -113,3 +115,139 @@ class RollingQueue:
     def size(self):
         '''The current size of the rolling queue. Read-only'''
         return self._size
+
+class RunningStats:
+    '''
+    An online algorithm to caclulate statistics in a running fashion.
+    '''
+    def __init__(self):
+        self._n = 0
+        self._oldMean = 0.0
+        self._newMean = 0.0
+        # Variance Sum:
+        self._oldSum = 0.0
+        self._newSum = 0.0
+
+    def clear(self):
+        '''Reset the rolling statistic'''
+        self._n = 0
+
+    def push(self, value):
+        '''Adds a value to the running data set'''
+        self._n += 1
+        if self._n == 1:
+            self._oldMean = self._newMean = value
+            self._oldSum = 0.0
+        else:
+            self._newMean = self._oldMean +  (value - self._oldMean) / self._n
+            self._newSum = self._oldSum + (value - self._oldMean) * (value - self._newMean)
+
+            # Prep the next iteration:
+            self._oldMean = self._newMean
+            self._oldSum = self._newSum
+
+    @property
+    def mean(self):
+        '''Return the mean value of the data set.'''
+        return self._newMean if self._n > 0 else 0.0
+
+    @property
+    def variance(self):
+        '''
+        Return the variance of the data set
+
+        Uses Bessel's Correction of `variance-sum / (n - 1)`
+        '''
+        return self._newSum / (self._n - 1) if self._n > 1 else 0.0
+
+    @property
+    def stddev(self):
+        '''
+        Return the standard deviation of the data set
+
+        Standard deviation is the square root of the variance.
+        When possible, prefer to use variance.
+        '''
+        return sqrt(self.variance)
+
+class RollingStats:
+    '''
+    This is a rolling implementation of Donald Knuth's algorithm, using
+    Welford's method.
+
+    Notice:
+        unitl there is enough data to begin rolling (n >= period)
+        where data size = n, the results from this will be very innacurate.
+        To check accuracy, use `RollingStats.isaccurate`
+    '''
+    def __init__(self, period):
+        '''
+        period: `int` The number of days to  trace the stats back,
+        also referred to as the 'window'.
+        '''
+        self._queue = RollingQueue(period)
+        # Variance Sum:
+        self._varS = 0.0
+        self._mean = 0.0
+        # Cache the recip to avoid division:
+        self._recip_size = 1 / period
+        # Cache the recip with Bessel's correction:
+        self._bessel_recip = 1 / (period - 1)
+
+    def push(self, value):
+        '''
+        Push a value into the rolling data set.
+
+        value : `int,float`
+        '''
+        # Calculate the mean:
+        frontVal = self._queue.peek()
+
+        if self._queue.isEmpty():
+            self._mean = value
+            frontVal = value
+
+        self._queue.enqueue(value)
+        new_mean = old_mean = self._mean
+
+        new_mean -= frontVal * self._recip_size
+        new_mean += value * self._recip_size
+
+        self._varS += (value + frontVal - old_mean + new_mean) * (value - frontVal)
+
+        # Next iteration setup:
+        self._mean = new_mean
+
+    @property
+    def mean(self):
+        '''
+        The Mean of the rolling data.
+        '''
+        return self._mean
+
+    @property
+    def variance(self):
+        '''
+        The Variance of the rolling data.
+        '''
+        return self._varS * self._bessel_recip
+
+    @property
+    def isaccurate(self):
+        '''
+        `bool`
+        if false, the data window has not been filled yet,
+        and will not be fully accurate.
+
+        In graphing and calculations, consider using `None`
+        in place of the inaccurate values. i.e.,
+
+            if not rstats.isaccurate:
+                return None
+            else:
+                return rstats.variance
+
+        Alternatively, you can use `RunningStats` until the data has become accurate
+        to get accurate sample deviaitons
+        '''
+        return self._queue.atCapacity()
