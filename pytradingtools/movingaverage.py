@@ -43,6 +43,9 @@ class MovingAverage(metaclass=ABCMeta):
 class SimpleMovingAverage(MovingAverage):
     '''
         Averages the values of the given period, giving equal weight to each day.
+
+        Until there are enough data points to fill the period, the SMA will be an approximate average.
+
     '''
     def __init__(self, period):
         '''
@@ -81,6 +84,14 @@ class SimpleMovingAverage(MovingAverage):
     def period(self):
         '''Get the period of the SMA'''
         return self._queue.capacity
+
+    @property
+    def isaccurate(self):
+        '''
+        If there have not been enough data points entered to
+        fill in the period specified, this will return False.
+        '''
+        return self._queue.atCapacity()
 
 class ExponentialMovingAverage(MovingAverage):
     '''
