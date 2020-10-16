@@ -2,8 +2,9 @@ import unittest
 from pytradingtools.utilities import RollingQueue
 
 class TestRollingQueue(unittest.TestCase):
+    '''Tests for the rolling queue util'''
     def test_initialization(self):
-        # Tests creation of a rolling queue.
+        '''Tests creation of a rolling queue.'''
         self.assertRaises(ValueError, RollingQueue, 0)
         self.assertRaises(ValueError, RollingQueue, -1)
 
@@ -12,7 +13,7 @@ class TestRollingQueue(unittest.TestCase):
         self.assertTrue(q.capacity == 10)
 
     def test_empty_and_at_capacity(self):
-        # Tests the isEmpty and atCapacity methods.
+        '''Tests the isEmpty and atCapacity methods.'''
         q = RollingQueue(1)
         self.assertTrue(q.isEmpty())
         self.assertFalse(q.atCapacity())
@@ -23,7 +24,7 @@ class TestRollingQueue(unittest.TestCase):
         self.assertTrue(q.atCapacity())
 
     def test_peek(self):
-        # Tests the peek method return values
+        '''Tests the peek method return values'''
         q = RollingQueue(1)
         self.assertEqual(None, q.peek())
 
@@ -35,7 +36,7 @@ class TestRollingQueue(unittest.TestCase):
         self.assertEqual(None, q.peek())
 
     def test_enqueue(self):
-        # Tests the enqueue method
+        '''Tests the enqueue method'''
         q = RollingQueue(1)
 
         inputVal = "hello"
@@ -46,7 +47,7 @@ class TestRollingQueue(unittest.TestCase):
         self.assertEqual(inputVal, returnVal)
 
     def test_dequeue(self):
-        # Tests the dequeue method:
+        '''Tests the dequeue method:'''
         q = RollingQueue(2)
 
         A = "A"
@@ -64,7 +65,7 @@ class TestRollingQueue(unittest.TestCase):
         self.assertRaises(ValueError, q.dequeue)
 
     def test_iter(self):
-        # Test the built-in iterable
+        '''Test the built-in iterable'''
         cap = 10
         q = RollingQueue(cap)
 
