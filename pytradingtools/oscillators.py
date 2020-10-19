@@ -1,13 +1,25 @@
+from enum import Enum
 from pytradingtools.movingaverage import SmoothedMovingAverage, SimpleMovingAverage, ExponentialMovingAverage
-
+from pytradingtools.utilities import RollingQueue
 #==============================================#
     # In this file (in-order as they appear):
+    #       OscillatorSignal(Enum)
     #       RelativeStrengthIndex
+    #       MACD
+    #       WilliamsPercentRange
 #==============================================#
 
 #==============================================#
 # START CLASSES
 #==============================================#
+
+class OscillatorSignal(Enum):
+    '''
+    Used with oscillators to derive a signal of an index's overbought/oversold status.
+    '''
+    overbought = 0
+    oversold = 1
+    nothing = 2
 
 class RelativeStrengthIndex:
     '''
@@ -21,7 +33,14 @@ class RelativeStrengthIndex:
 
     n = period
     '''
-    def __init__(self, period=14):
+    def __init__(self, period=14, oversold=0.3, overbought=0.7):
+        '''
+        period : `int` the number of days to use as lookback.
+
+        oversold: `float` range 0-1, RSI index where the asset is oversold. Default 0.3.
+
+        overbought `float` range 0-1, RSI index where the asset is overbought. Default 0.7.
+        '''
         self._period = period
         # Cache for speed
         self._recip_period = 1 / self._period
@@ -34,6 +53,8 @@ class RelativeStrengthIndex:
         self._rs = 0.0
         self._rsi = 0.0
         self._isaccurate = False
+
+        # TODO: Add overbought/sold and state getter.
 
     def update(self, value):
         '''
@@ -93,6 +114,8 @@ class RelativeStrengthIndex:
 
 class MACD:
     '''
+    Moving Average Convergence Divergence Oscillator.
+
     Oscillator that displays the difference between 2 Moving Averages,
     typically between a 12-day and 26-day EMA.
     '''
@@ -137,3 +160,65 @@ class MACD:
         Returns the most recent calculated output index of the `MACD.update()` method.
         '''
         return self._macd
+
+class WilliamsPercentRange:
+    '''
+    Williams %R formula:
+
+        Highest - Close / Highest - Lowest
+
+    Highest = Highest price over the period
+
+    Close = Closing price for the most recent trading day
+
+    Lowest = Lowest price over the period
+
+    Typical Period = 14 days
+    '''
+    def __init__(self, period=14, overbought=-20, oversold=-80):
+        '''
+        period : `int` The number of days to lookback when calculating %R
+
+        overbought : `int,float` The %R value that specifies if the asset is overbought when %R is greater.
+
+        oversold : `int,float` The %R value that specifies if the asset is oversold when the %R is lesser.
+        '''
+        self._lookback = RollingQueue(period)
+        self._period = period
+        self._percentRange = 0.0
+
+        self._overbought = overbought
+        self._oversold = oversold
+
+    def update(self, value):
+        '''
+        value: `float` the latest market close price.
+        '''
+        highest = max(self._lookback)
+        lowest = min(self._lookback)
+        self._percentRange = (highest - value) / (highest - lowest)
+
+    @property
+    def range(self):
+        '''
+        Returns the most recently calculated %R value.
+
+        %R moves between 0 and -100
+
+        0 > %R > -20 typically means overbought
+
+        -80 > %R > -100 typically means oversold
+        '''
+        return self._percentRange
+
+    @property
+    def state(self):
+        '''
+        Returns the `OscillatorSignal` of the %R value.
+        '''
+        if self._percentRange >= self._overbought:
+            return OscillatorSignal.overbought
+        elif self._percentRange <= self._oversold:
+            return OscillatorSignal.oversold
+        else:
+            return OscillatorSignal.nothing
