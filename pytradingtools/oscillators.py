@@ -1,13 +1,26 @@
-from pytradingtools.movingaverage import SmoothedMovingAverage, SimpleMovingAverage
-
+from enum import Enum
+from pytradingtools.movingaverage import SmoothedMovingAverage, SimpleMovingAverage, ExponentialMovingAverage
+from pytradingtools.utilities import RollingQueue
 #==============================================#
     # In this file (in-order as they appear):
+    #       OscillatorSignal(Enum)
     #       RelativeStrengthIndex
+    #       CutlerRSI
+    #       MACD
+    #       WilliamsPercentRange
 #==============================================#
 
 #==============================================#
 # START CLASSES
 #==============================================#
+
+class OscillatorSignal(Enum):
+    '''
+    Used with oscillators to derive a signal of an index's overbought/oversold status.
+    '''
+    overbought = 0
+    oversold = 1
+    nothing = 2
 
 class RelativeStrengthIndex:
     '''
@@ -21,7 +34,14 @@ class RelativeStrengthIndex:
 
     n = period
     '''
-    def __init__(self, period=14):
+    def __init__(self, period=14, oversold=30, overbought=30):
+        '''
+        period : `int` the number of days to use as lookback.
+
+        oversold: `int, float` range 0-100, RSI index where the asset is oversold. Default 30.
+
+        overbought `int, float` range 0-100, RSI index where the asset is overbought. Default 70.
+        '''
         self._period = period
         # Cache for speed
         self._recip_period = 1 / self._period
@@ -34,6 +54,9 @@ class RelativeStrengthIndex:
         self._rs = 0.0
         self._rsi = 0.0
         self._isaccurate = False
+
+        self._oversold = oversold
+        self._overbought = overbought
 
     def update(self, value):
         '''
@@ -68,25 +91,190 @@ class RelativeStrengthIndex:
         self._up.update(up)
         self._down.update(down)
 
-        rs = 0
         # Avoid 0-division
         if self._down.average > 0.0:
-            rs = self._up.average / self._down.average
-        self._rs = rs
-        self._rsi = 100 - (100 / (1 + self._rs))
+            self._rs = self._up.average / self._down.average
+            self._rsi = 100 - (100 / (1 + self._rs))
+        else:
+            # if there have been 0 down days, then we have a special-case 100 RSI.
+            self._rsi = 100
+
+        self._lastPrice = value
 
     @property
     def rsi(self):
         '''
         Get the Relative Strength Index (RSI).
 
-        Ranges between 0-1
+        Ranges between 0-100
         '''
         return self._rsi
 
     @property
     def rs(self):
-        '''
-        Get the Relative Strength without indexing.
-        '''
+        '''Get the Relative Strength without indexing.'''
         return self._rs
+
+    @property
+    def state(self):
+        '''Returns the `OscillatorSignal` of the most recent RSI value.'''
+        if self._rsi >= self._overbought:
+            return OscillatorSignal.overbought
+        elif self._rsi <= self._oversold:
+            return OscillatorSignal.oversold
+        else:
+            return OscillatorSignal.nothing
+
+class CutlerRSI(RelativeStrengthIndex):
+    '''
+    Relative Strength Index calculated using Cutler's method which employs an SMA instead of EMA.
+
+    Cutler's RSI evades the data-length issue of 50 days worth of RSI being different than 500
+    due to the nature of EMA having "residual" data carryover from beyond a smoothing period.
+    '''
+    def __init__(self, period=14, oversold=30, overbought=70):
+        super().__init__(period, oversold, overbought)
+
+    def update(self, value):
+        '''
+        Update the RSI
+
+        Note:
+            Will not be accurate until the period window is met.
+        '''
+        if self._lastPrice is None:
+            self._lastPrice = value
+
+        # Update the up and down
+        up = 0.0
+        down = 0.0
+        if value > self._lastPrice:
+            up = value - self._lastPrice
+        elif value < self._lastPrice:
+            # When down, reverse the subtraction:
+            down = self._lastPrice - value
+
+        self._up.update(up)
+        self._down.update(down)
+
+        # Avoid 0-division
+        if self._down.average > 0.0:
+            self._rs = self._up.average / self._down.average
+            self._rsi = 100 - (100 / (1 + self._rs))
+        else:
+            # if there have been 0 down days, then we have a special-case 100 RSI.
+            self._rsi = 100
+
+        self._lastPrice = value
+
+
+class MACD:
+    '''
+    Moving Average Convergence Divergence Oscillator.
+
+    Oscillator that displays the difference between 2 Moving Averages,
+    typically between a 12-day and 26-day EMA.
+    '''
+    def __init__(self, short=12, long=26):
+        '''
+        short: `int, MovingAverage` the period or moving average itself to be used
+        as the shorter of the two moving averages. If an `int` is given, this will use an EMA internally.
+
+        long: `int, MovingAverage` the period of moving average itself to be used
+        as the longer of the two moving averages. If an `int` is given, this will use an EMA internally.
+
+        Examples:
+
+            MACD(ExponentialMovingAverage(12), 26)
+            MACD()
+            MACD(SimpleMovingAverage(12), SimpleMovingAverage(26))
+        '''
+        if isinstance(short, int):
+            self.short = ExponentialMovingAverage(short)
+        else:
+            self.short = short
+
+        if isinstance(long, int):
+            self.long = ExponentialMovingAverage(long)
+        else:
+            self.long = long
+
+        self._macd = 0.0
+
+    def update(self, value):
+        '''
+        value : `float` the market price for the MACD to use to calculate the index.
+        '''
+        self.short.update(value)
+        self.long.update(value)
+
+        self._macd = self.short.average - self.long.average
+
+    @property
+    def macd(self):
+        '''
+        Returns the most recent calculated output index of the `MACD.update()` method.
+        '''
+        return self._macd
+
+class WilliamsPercentRange:
+    '''
+    Williams %R formula:
+
+        Highest - Close / Highest - Lowest
+
+    Highest = Highest price over the period
+
+    Close = Closing price for the most recent trading day
+
+    Lowest = Lowest price over the period
+
+    Typical Period = 14 days
+    '''
+    def __init__(self, period=14, overbought=-20, oversold=-80):
+        '''
+        period : `int` The number of days to lookback when calculating %R
+
+        overbought : `int,float` The %R value that specifies if the asset is overbought when %R is greater.
+
+        oversold : `int,float` The %R value that specifies if the asset is oversold when the %R is lesser.
+        '''
+        self._lookback = RollingQueue(period)
+        self._period = period
+        self._percentRange = 0.0
+
+        self._overbought = overbought
+        self._oversold = oversold
+
+    def update(self, value):
+        '''
+        value: `float` the latest market close price.
+        '''
+        highest = max(self._lookback)
+        lowest = min(self._lookback)
+        self._percentRange = (highest - value) / (highest - lowest)
+
+    @property
+    def range(self):
+        '''
+        Returns the most recently calculated %R value.
+
+        %R moves between 0 and -100
+
+        0 > %R > -20 typically means overbought
+
+        -80 > %R > -100 typically means oversold
+        '''
+        return self._percentRange
+
+    @property
+    def state(self):
+        '''
+        Returns the `OscillatorSignal` of the %R value.
+        '''
+        if self._percentRange >= self._overbought:
+            return OscillatorSignal.overbought
+        elif self._percentRange <= self._oversold:
+            return OscillatorSignal.oversold
+        else:
+            return OscillatorSignal.nothing
