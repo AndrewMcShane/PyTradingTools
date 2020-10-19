@@ -213,7 +213,7 @@ class RollingStats:
         new_mean -= frontVal * self._recip_size
         new_mean += value * self._recip_size
 
-        self._varS += (value + frontVal - old_mean + new_mean) * (value - frontVal)
+        self._varS += (value + frontVal - old_mean - new_mean) * (value - frontVal)
 
         # Next iteration setup:
         self._mean = new_mean
@@ -231,6 +231,11 @@ class RollingStats:
         The Variance of the rolling data.
         '''
         return self._varS * self._bessel_recip
+
+    @property
+    def stddev(self):
+        '''The Standard Deviation of the rolling data'''
+        return sqrt(self.variance)
 
     @property
     def isaccurate(self):

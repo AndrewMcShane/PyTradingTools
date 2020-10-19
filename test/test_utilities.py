@@ -1,5 +1,6 @@
 import unittest
-from pytradingtools.utilities import RollingQueue
+import math
+from pytradingtools.utilities import RollingQueue, RunningStats, RollingStats
 
 class TestRollingQueue(unittest.TestCase):
     '''Tests for the rolling queue util'''
@@ -81,3 +82,52 @@ class TestRollingQueue(unittest.TestCase):
             expected += 1
 
         self.assertEqual(cap, expected)
+
+class TestRunningStats(unittest.TestCase):
+    '''Tests the RunningStats class'''
+    def test_running(self):
+        '''Test the Running stats over simple use cases'''
+        rs = RunningStats()
+
+        data = [5, 6, 7, 8, 9, 10, 12, 6, 2]
+        expectedMean= 65/9
+        expectedVariance = 69.556/8
+        expecteStdDev = math.sqrt(expectedVariance)
+
+        for point in data:
+            rs.push(point)
+
+        self.assertAlmostEqual(rs.mean, expectedMean)
+        self.assertAlmostEqual(rs.variance, expectedVariance, 3)
+        self.assertAlmostEqual(rs.stddev, expecteStdDev, 3)
+
+class TestRollingStats(unittest.TestCase):
+    '''Tests the RollingStats class'''
+    def test_rolling(self):
+        '''Test the Rolling Stats over simple use-cases'''
+        period = 5
+        rs = RollingStats(period)
+
+        data = [5, 6, 7, 8, 9]
+        expM = 7
+        expVar = 2.5
+        expStd = math.sqrt(expVar)
+
+        for point in data:
+            rs.push(point)
+
+        self.assertTrue(rs.isaccurate)
+        self.assertAlmostEqual(rs.mean, expM)
+        self.assertAlmostEqual(rs.variance, expVar, 3)
+        self.assertAlmostEqual(rs.stddev, expStd, 3)
+
+        # Test the data once it's rolled:
+        rs.push(4)
+
+        expM = 6.8
+        expVar = 3.7
+        expStd = math.sqrt(expVar)
+
+        self.assertAlmostEqual(rs.mean, expM)
+        self.assertAlmostEqual(rs.variance, expVar, 3)
+        self.assertAlmostEqual(rs.stddev, expStd, 3)

@@ -54,7 +54,8 @@ class RelativeStrengthIndex:
         self._rsi = 0.0
         self._isaccurate = False
 
-        # TODO: Add overbought/sold and state getter.
+        self._oversold = oversold
+        self._overbought = overbought
 
     def update(self, value):
         '''
@@ -107,10 +108,18 @@ class RelativeStrengthIndex:
 
     @property
     def rs(self):
-        '''
-        Get the Relative Strength without indexing.
-        '''
+        '''Get the Relative Strength without indexing.'''
         return self._rs
+
+    @property
+    def state(self):
+        '''Returns the `OscillatorSignal` of the most recent RSI value.'''
+        if self._rsi >= self._overbought:
+            return OscillatorSignal.overbought
+        elif self._rsi <= self._oversold:
+            return OscillatorSignal.oversold
+        else:
+            return OscillatorSignal.nothing
 
 class MACD:
     '''
