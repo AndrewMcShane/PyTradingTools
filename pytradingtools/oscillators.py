@@ -1,4 +1,4 @@
-from pytradingtools.movingaverage import SmoothedMovingAverage, SimpleMovingAverage
+from pytradingtools.movingaverage import SmoothedMovingAverage, SimpleMovingAverage, ExponentialMovingAverage
 
 #==============================================#
     # In this file (in-order as they appear):
@@ -90,3 +90,50 @@ class RelativeStrengthIndex:
         Get the Relative Strength without indexing.
         '''
         return self._rs
+
+class MACD:
+    '''
+    Oscillator that displays the difference between 2 Moving Averages,
+    typically between a 12-day and 26-day EMA.
+    '''
+    def __init__(self, short=12, long=26):
+        '''
+        short: `int, MovingAverage` the period or moving average itself to be used
+        as the shorter of the two moving averages. If an `int` is given, this will use an EMA internally.
+
+        long: `int, MovingAverage` the period of moving average itself to be used
+        as the longer of the two moving averages. If an `int` is given, this will use an EMA internally.
+
+        Examples:
+
+            MACD(ExponentialMovingAverage(12), 26)
+            MACD()
+            MACD(SimpleMovingAverage(12), SimpleMovingAverage(26))
+        '''
+        if isinstance(short, int):
+            self.short = ExponentialMovingAverage(short)
+        else:
+            self.short = short
+
+        if isinstance(long, int):
+            self.long = ExponentialMovingAverage(long)
+        else:
+            self.long = long
+
+        self._macd = 0.0
+
+    def update(self, value):
+        '''
+        value : `float` the market price for the MACD to use to calculate the index.
+        '''
+        self.short.update(value)
+        self.long.update(value)
+
+        self._macd = self.short.average - self.long.average
+
+    @property
+    def macd(self):
+        '''
+        Returns the most recent calculated output index of the `MACD.update()` method.
+        '''
+        return self._macd
