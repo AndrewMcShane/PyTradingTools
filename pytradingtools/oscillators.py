@@ -5,6 +5,7 @@ from pytradingtools.utilities import RollingQueue
     # In this file (in-order as they appear):
     #       OscillatorSignal(Enum)
     #       RelativeStrengthIndex
+    #       CutlerRSI
     #       MACD
     #       WilliamsPercentRange
 #==============================================#
@@ -123,6 +124,49 @@ class RelativeStrengthIndex:
             return OscillatorSignal.oversold
         else:
             return OscillatorSignal.nothing
+
+class CutlerRSI(RelativeStrengthIndex):
+    '''
+    Relative Strength Index calculated using Cutler's method which employs an SMA instead of EMA.
+
+    Cutler's RSI evades the data-length issue of 50 days worth of RSI being different than 500
+    due to the nature of EMA having "residual" data carryover from beyond a smoothing period.
+    '''
+    def __init__(self, period=14, oversold=30, overbought=70):
+        super().__init__(period, oversold, overbought)
+
+    def update(self, value):
+        '''
+        Update the RSI
+
+        Note:
+            Will not be accurate until the period window is met.
+        '''
+        if self._lastPrice is None:
+            self._lastPrice = value
+
+        # Update the up and down
+        up = 0.0
+        down = 0.0
+        if value > self._lastPrice:
+            up = value - self._lastPrice
+        elif value < self._lastPrice:
+            # When down, reverse the subtraction:
+            down = self._lastPrice - value
+
+        self._up.update(up)
+        self._down.update(down)
+
+        # Avoid 0-division
+        if self._down.average > 0.0:
+            self._rs = self._up.average / self._down.average
+            self._rsi = 100 - (100 / (1 + self._rs))
+        else:
+            # if there have been 0 down days, then we have a special-case 100 RSI.
+            self._rsi = 100
+
+        self._lastPrice = value
+
 
 class MACD:
     '''
