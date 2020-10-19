@@ -33,13 +33,13 @@ class RelativeStrengthIndex:
 
     n = period
     '''
-    def __init__(self, period=14, oversold=0.3, overbought=0.7):
+    def __init__(self, period=14, oversold=30, overbought=30):
         '''
         period : `int` the number of days to use as lookback.
 
-        oversold: `float` range 0-1, RSI index where the asset is oversold. Default 0.3.
+        oversold: `int, float` range 0-100, RSI index where the asset is oversold. Default 30.
 
-        overbought `float` range 0-1, RSI index where the asset is overbought. Default 0.7.
+        overbought `int, float` range 0-100, RSI index where the asset is overbought. Default 70.
         '''
         self._period = period
         # Cache for speed
@@ -90,19 +90,22 @@ class RelativeStrengthIndex:
         self._up.update(up)
         self._down.update(down)
 
-        rs = 0
         # Avoid 0-division
         if self._down.average > 0.0:
-            rs = self._up.average / self._down.average
-        self._rs = rs
-        self._rsi = 100 - (100 / (1 + self._rs))
+            self._rs = self._up.average / self._down.average
+            self._rsi = 100 - (100 / (1 + self._rs))
+        else:
+            # if there have been 0 down days, then we have a special-case 100 RSI.
+            self._rsi = 100
+
+        self._lastPrice = value
 
     @property
     def rsi(self):
         '''
         Get the Relative Strength Index (RSI).
 
-        Ranges between 0-1
+        Ranges between 0-100
         '''
         return self._rsi
 

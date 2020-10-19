@@ -113,7 +113,8 @@ class ExponentialMovingAverage(MovingAverage):
 
             smoothing = smoothing factor used in the multiplier calculation. default is 2.0
 
-            Using a smoothing factor of 1.0 is the equivalent of using a SMMA/MMA/RMA
+            While the number of updates is less than the period, the SMA will be calculated in place
+            of the EMA average.
         '''
         if not isinstance(period, int) or period < 1:
             raise ValueError("period must be an integer and greater than 0")
@@ -123,16 +124,25 @@ class ExponentialMovingAverage(MovingAverage):
         self._average = None
         self._period = period
         self._smoothing = smoothing
-        self._multiplier = smoothing / (period + 1)
+        self._a = smoothing / (period + 1)
+
+        # used when starting out the calculations:
+        self._sma = SimpleMovingAverage(period)
+        self._accurate = False
 
     def update(self, value):
         if not isinstance(value, (float, int)):
             raise ValueError("value is non-numeric or complex.")
 
-        if self._average is None:
-            self._average = value
-
-        self._average = (value - self._average) * self._multiplier + self._average
+        if not self._accurate:
+            self._sma.update(value)
+            self._average = self._sma.average
+            if self._sma.isaccurate:
+                self._accurate = True
+                # Ditch the SMA:
+                self._sma = None
+        else:
+            self._average = self._average + self._a * (value - self._average)
 
     @property
     def average(self):
@@ -148,6 +158,11 @@ class ExponentialMovingAverage(MovingAverage):
         '''Get the smoothing factor or the EMA'''
         return self._smoothing
 
+    @property
+    def isaccurate(self):
+        '''Is the EMA accurate with the period yet?'''
+        return self._accurate
+
 class SmoothedMovingAverage(ExponentialMovingAverage):
     '''
     Alias for an exponential moving average (EMA) with a smoothing factor of 1.0
@@ -157,3 +172,4 @@ class SmoothedMovingAverage(ExponentialMovingAverage):
         period: the number of segments (usually days) to track the moving average.
         '''
         super().__init__(period, 1.0)
+        self._a = 1 / period
