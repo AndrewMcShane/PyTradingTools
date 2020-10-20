@@ -8,6 +8,9 @@ from pytradingtools.utilities import RollingQueue
     #       CutlerRSI
     #       MACD
     #       WilliamsPercentRange
+    #       OnBalanceVolume
+    #       ADLine
+    #       StochasticOscillator
 #==============================================#
 
 #==============================================#
@@ -278,3 +281,139 @@ class WilliamsPercentRange:
             return OscillatorSignal.oversold
         else:
             return OscillatorSignal.nothing
+
+class OnBalanceVolume:
+    '''
+    Provides a running total of volume,
+    shows whether money is moving in or out of an asset.
+
+    OBV = OBVprev +
+
+        {
+            volume  if CLOSE > CLOSEprev,
+            0       if CLOSE = CLOSEprev,
+            -volume if CLOSE < CLOSEprev
+        }
+    '''
+    def __init__(self):
+        self._obv = 0.0
+        self._lastPrice = 0.0
+
+    def update(self, volume, close):
+        '''
+        Update the OBV:
+
+        volume: `int` shares of a holding exchanged on a given day.
+
+        close: `float` the closing price of the market.
+        '''
+        if close > self._lastPrice:
+            self._obv += volume
+        elif close < self._lastPrice:
+            self._obv -= volume
+
+        self._lastPrice = close
+
+    @property
+    def value(self):
+        '''Return the value of the OBV'''
+        return self._obv
+
+class ADLine:
+    '''
+    Accumulation / Distribution Line.
+
+    Hints supply and demand, looking at where the price closed compared to the price action.
+
+    A Rising A/D can confirm an uptrend.
+    A falling A/D can confirm a downtrend.
+
+    If a price is rising but A/D falls, it signals a decline.
+    If a price is falling but A/D rises, it signals underlying strength.
+    '''
+    def __init__(self):
+        self._ad = 0.0
+
+    def update(self, close, high, low, volume):
+        '''
+        close: the closing price of the last market day.
+
+        high: the highest price in the last market day.
+
+        low: the lowest price in the last market day.
+
+        volume: the volume for the last market day.
+        '''
+        self._ad += (((close - low) - (high - close)) / (high - low)) * volume
+
+    @property
+    def value(self):
+        '''returns the A/D value.'''
+        return self._ad
+
+class StochasticOscillator:
+    '''
+    Compares closing price to price action over a given period.
+
+    attempts to catch new highes and lows in a market period.
+
+        %K = (Close - LowN) / (HighN - LowN)
+
+    Close: most recent close price
+
+    LowN: the lowest price traded over N days
+
+    HighN: the highest price traded over N days
+
+    N typically = 14
+
+    %K 0-100 range
+
+    Prefer RSI in trending markets, but stochastics in choppy markets.
+
+    Visual Aids tend to use a 3-day SMA in conjunction to get a better idea of momentum.
+    '''
+    def __init__(self, period=14, oversold=20, overbought=80):
+        '''
+        period: `int` the number of days to look back at prices
+
+        oversold: `int` %K value to signal oversold when %K <= oversold
+
+        overbought: `int` %K value to signal overbought when %K >= overbought
+        '''
+        self._lows = RollingQueue(period)
+        self._highs = RollingQueue(period)
+        self._k = 0
+
+        self._oversold = oversold
+        self._overbought = overbought
+
+    def update(self, close, high, low):
+        '''
+        close: `float` the last closing price.
+
+        high: `float` the highest price traded on a day.
+
+        low: `float` the lowest price traded on a day.
+        '''
+        self._lows.enqueue(low)
+        self._highs.enqueue(high)
+
+        l = min(self._lows)
+        h = max(self._highs)
+        self._k = ((close - l) / (h - l)) * 100
+
+    @property
+    def percentk(self):
+        '''returns the %K value'''
+        return self._k
+
+    @property
+    def state(self):
+        '''Returns the `OscillatorSignal` of the %K value'''
+        if self._k >= self._overbought:
+            return OscillatorSignal.overbought
+        if self._k <= self._oversold:
+            return OscillatorSignal.oversold
+
+        return OscillatorSignal.nothing
