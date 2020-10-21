@@ -1,6 +1,6 @@
 import unittest
 import math
-from pytradingtools.utilities import RollingQueue, RunningStats, RollingStats
+from pytradingtools.utilities import RollingQueue, RunningStats, RollingStats, RollingSum
 
 class TestRollingQueue(unittest.TestCase):
     '''Tests for the rolling queue util'''
@@ -131,3 +131,33 @@ class TestRollingStats(unittest.TestCase):
         self.assertAlmostEqual(rs.mean, expM)
         self.assertAlmostEqual(rs.variance, expVar, 3)
         self.assertAlmostEqual(rs.stddev, expStd, 3)
+
+class TestRollingSum(unittest.TestCase):
+    '''Tests the RollingSum class'''
+    def test_rolling(self):
+        '''Test the RollingSum over simple use-cases'''
+        period = 5
+        rs = RollingSum(period)
+        for i in range(0, period):
+            rs.update(1)
+
+        self.assertEqual(rs.sum, period)
+
+        for i in range(0, 1000):
+            rs.update(1)
+
+        self.assertEqual(rs.sum, period)
+
+        data = [1,2,3,4,5]
+        for i in data:
+            rs.update(i)
+
+        expected = sum(data)
+        self.assertEqual(rs.sum, expected)
+
+        nplus = 6
+        rs.update(nplus)
+        expected -= data[0]
+        expected += nplus
+
+        self.assertEqual(rs.sum, expected)
