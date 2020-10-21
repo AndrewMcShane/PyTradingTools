@@ -1,6 +1,7 @@
 from enum import Enum
 
 from pytradingtools.movingaverage import MovingAverage, SimpleMovingAverage
+from pytradingtools.utilities import RollingStats, RunningStats
 
 #==============================================#
     # In this file (in-order as they appear):
@@ -8,6 +9,7 @@ from pytradingtools.movingaverage import MovingAverage, SimpleMovingAverage
     #       EnvelopeState(Enum)
     #       Envelope
     #       MovingAverageCrossover
+    #       BollingerBand
 #==============================================#
 
 #==============================================#
@@ -236,3 +238,66 @@ class MovingAverageCrossover:
         if self._freshSignal:
             return self._signal
         return TradeSignal.hold
+
+class BollingerBand:
+    '''
+    Technical analysis tool made by John Bollinger that places points
+    2 standard deviations away from an SMA.
+    '''
+    def __init__(self, period=20, deviations=2, ma=SimpleMovingAverage):
+        '''
+        period: `int` days to look back.
+
+        deviations: `int,float` number of standard deviations to use.
+
+        ma: `type` defines the *type* of the `MovingAverage` to use. default is SMA.
+        '''
+        self._period = period
+        self._deviations = deviations
+        self._ma = ma(period)
+        self._rStats = RollingStats(period)
+        # Use this until rStats is accurate.
+        self._ruStats = RunningStats()
+
+        self._hiBand = 0.0
+        self._loBand = 0.0
+
+        # Cache for division avoidance
+        self._tp_recip = 1 / 3
+
+    def update(self, close, high, low):
+        '''
+        close: `float` the latest closing price
+
+        high: `float` the highest price for the market day.
+
+        low: `float` the lowest market price for the day.
+        '''
+        tp = (high + low + close) * self._tp_recip
+
+        self._ma.update(tp)
+
+        self._rStats.push(tp)
+
+        std = 0.0
+        if self._rStats.isaccurate:
+            std = self._rStats.stddev
+        else:
+            # Use Running stats while not accurate.
+            self._ruStats.push(tp)
+            std = self._ruStats.stddev
+
+        std *= self._deviations
+
+        self._hiBand = self._ma.average + std
+        self._loBand = self._ma.average - std
+
+    @property
+    def upperband(self):
+        '''Return the value of the upper band'''
+        return self._hiBand
+
+    @property
+    def lowerband(self):
+        '''Return the value of the lower band'''
+        return self._loBand
