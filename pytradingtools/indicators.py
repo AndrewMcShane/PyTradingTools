@@ -1,6 +1,7 @@
 from enum import Enum
 
 from pytradingtools.movingaverage import MovingAverage, SimpleMovingAverage
+from pytradingtools.utilities import RollingStats, RunningStats
 
 #==============================================#
     # In this file (in-order as they appear):
@@ -8,6 +9,7 @@ from pytradingtools.movingaverage import MovingAverage, SimpleMovingAverage
     #       EnvelopeState(Enum)
     #       Envelope
     #       MovingAverageCrossover
+    #       BollingerBands
 #==============================================#
 
 #==============================================#
@@ -236,3 +238,9 @@ class MovingAverageCrossover:
         if self._freshSignal:
             return self._signal
         return TradeSignal.hold
+
+class BollingerBands:
+    '''
+    TODO
+    '''
+    

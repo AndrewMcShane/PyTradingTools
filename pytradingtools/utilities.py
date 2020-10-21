@@ -6,6 +6,7 @@ from math import sqrt
 #           RollingQueue
 #           RunningStats
 #           RollingStats
+#           RollingSum
 #==============================================#
 
 #==============================================#
@@ -256,3 +257,25 @@ class RollingStats:
         to get accurate sample deviaitons
         '''
         return self._queue.atCapacity()
+
+class RollingSum:
+    '''
+    Calculates the sum of the last n-periods on a rolling basis.
+    '''
+    def __init__(self, period):
+        self._sum = 0.0
+        self._data = RollingQueue(period)
+
+    def update(self, value):
+        '''
+        value: `float` the new value to add to the rolling sum.
+        '''
+        rem = self._data.enqueue(value)
+        if rem is not None:
+            self._sum -= rem
+        self._sum += value
+
+    @property
+    def sum(self):
+        '''Returns the current value of the rolling sum'''
+        return self._sum

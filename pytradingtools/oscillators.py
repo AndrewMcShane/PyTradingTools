@@ -1,6 +1,6 @@
 from enum import Enum
 from pytradingtools.movingaverage import SmoothedMovingAverage, SimpleMovingAverage, ExponentialMovingAverage
-from pytradingtools.utilities import RollingQueue
+from pytradingtools.utilities import RollingQueue, RollingSum
 #==============================================#
     # In this file (in-order as they appear):
     #       OscillatorSignal(Enum)
@@ -11,6 +11,8 @@ from pytradingtools.utilities import RollingQueue
     #       OnBalanceVolume
     #       ADLine
     #       StochasticOscillator
+    #       MoneyFlowIndex
+    #       RateOfChange
 #==============================================#
 
 #==============================================#
@@ -166,6 +168,7 @@ class CutlerRSI(RelativeStrengthIndex):
             self._rsi = 100 - (100 / (1 + self._rs))
         else:
             # if there have been 0 down days, then we have a special-case 100 RSI.
+            self._rs = 0
             self._rsi = 100
 
         self._lastPrice = value
@@ -417,3 +420,135 @@ class StochasticOscillator:
             return OscillatorSignal.oversold
 
         return OscillatorSignal.nothing
+
+class MoneyFlowIndex:
+    '''
+    MFI is a momentum indicator, measuring the flow of money in and out of a security.
+
+    MFI ranges from 0-100
+
+    Related to the RSI, but utilizes volume.
+
+        MFI =  100 - (100 / (1 + MFR))
+        MFR = nPositive / nNegative
+
+    where:
+
+    TP = Typical price = (H + L + C)/3
+
+        TPn > TPn-1 ? nPositive += volume
+        TPn < TPn-1 ? nNegative += volume
+        TPn = TPn-1 ? Nil
+
+    n = 14 (trading days, typically)
+    '''
+    def __init__(self, period=14, oversold=20, overbought=80):
+        '''
+        period: `int` the number of trading periods (usually days) to look back.
+
+        oversold: `int,float` MFI where the security is oversold.
+
+        overbought: `int,float` MFI where the security is overbought.
+        '''
+        self._period = period
+        self._nPositive = RollingSum(period)
+        self._nNegative = RollingSum(period)
+
+        self._oversold = oversold
+        self._overbought = overbought
+
+        self._mfi = 0.0
+        self._mfr = 0.0
+
+        self._lastTPv = 0.0
+        # Cache the recip to avoid division.
+        self._cacheRecip = 1 / 3
+
+    def update(self, close, high, low, volume):
+        '''
+        close: `float` the closing price on a market day.
+
+        high: `float` the highest price observed on a market day.
+
+        low: `float` the lowest price observed on a market day.
+
+        volume: `int` the number of securities exchanged.
+        '''
+        tpv = ((close + high + low) * self._cacheRecip) * volume
+
+        pFlow = 0.0
+        nFlow = 0.0
+
+        if tpv > self._lastTPv:
+            pFlow = tpv
+        elif tpv < self._lastTPv:
+            nFlow = tpv
+
+        self._nPositive.update(pFlow)
+        self._nNegative.update(nFlow)
+
+        # Avoid 0-division:
+        if self._nNegative.sum > 0.0:
+            self._mfr = self._nPositive.sum / self._nNegative.sum
+            self._mfi = 100 - (100 / (1 + self._mfr))
+        else:
+            self._mfr = 0
+            self._mfi = 100
+
+        # Next iteration setup:
+        self._lastTPv = tpv
+
+    @property
+    def mfi(self):
+        '''Returns the Money Flow Index (0-100)'''
+        return self._mfi
+
+    @property
+    def state(self):
+        '''Returns the `OscillatorSignal` of the current MFI'''
+        if self._mfi <= self._oversold:
+            return OscillatorSignal.oversold
+        if self._mfi >= self._overbought:
+            return OscillatorSignal.overbought
+        return OscillatorSignal.nothing
+
+class RateOfChange:
+    '''
+    Price Rate Of Change (ROC) is an unbounded momentum indicator.
+
+    ROC > 0 confirms and uptrend.
+
+    ROC < 0 confirms a downtrend
+
+    when the value is near 0, it may confirm consolidation.
+
+        ROC = (CLOSEn - CLOSE0) / CLOSE0
+
+    CLOSEn = most recent close price
+
+    CLOSE0 = price n-n periods ago. If p = 14, CLOSE0 = CLOSEn-p
+    '''
+    def __init__(self, period=12):
+        self._lookback = RollingQueue(period)
+        self._roc = 0.0
+
+    def update(self, value):
+        '''
+        value: `float` the most recent market close price
+
+        While less than n periods have passed, this will approcimate around the first value.
+        '''
+        rem = self._lookback.enqueue(value)
+        if rem is None:
+            rem = value
+
+        if rem > 0.0:
+            self._roc = (value - rem) / rem
+        else:
+            # This should never happen in practical use-cases.
+            self._roc = float("inf")
+
+    @property
+    def value(self):
+        '''Returns the current Rate Of Change value.'''
+        return self._roc
