@@ -1,4 +1,9 @@
-# Ignore all pycache folders
+# Ignore all pycache folders:
 __pycache__/
 .vscode
+# Remove the code sandbox:
 sandbox.py
+# Build-related files:
+pytradingtools.egg-info
+dist
+build

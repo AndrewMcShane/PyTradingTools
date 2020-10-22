@@ -1,11 +1,12 @@
-from distutils.core import setup
+from setuptools import find_packages, setup
 
 # Subject to change as project progresses.
 
 setup(
     name='pytradingtools',
-    license='GNU General Public License 3.0',
+    license='GPL 3.0',
     version='0.5',
-    packages=['pytradingtools'],
+    packages=find_packages(exclude=('test',)),
+    include_package_data=True,
     long_description=open('README.md').read()
 )
