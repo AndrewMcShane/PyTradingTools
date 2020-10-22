@@ -39,7 +39,7 @@ class RelativeStrengthIndex:
 
     n = period
     '''
-    def __init__(self, period=14, oversold=30, overbought=30):
+    def __init__(self, period=14, oversold=30, overbought=70):
         '''
         period : `int` the number of days to use as lookback.
 
@@ -137,9 +137,6 @@ class CutlerRSI(RelativeStrengthIndex):
     Cutler's RSI evades the data-length issue of 50 days worth of RSI being different than 500
     due to the nature of EMA having "residual" data carryover from beyond a smoothing period.
     '''
-    def __init__(self, period=14, oversold=30, overbought=70):
-        super().__init__(period, oversold, overbought)
-
     def update(self, value):
         '''
         Update the RSI
